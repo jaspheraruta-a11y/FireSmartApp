@@ -1,6 +1,5 @@
 
 import React, { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 interface ProtectedRouteProps {
@@ -8,8 +7,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-    const { user, loading } = useAuth();
-    const location = useLocation();
+    const { loading } = useAuth();
 
     if (loading) {
         return (
@@ -17,10 +15,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
                 <div className="h-16 w-16 animate-spin rounded-full border-4 border-dashed border-[#E53935]"></div>
             </div>
         );
-    }
-
-    if (!user) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     return <>{children}</>;
