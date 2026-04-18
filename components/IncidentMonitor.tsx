@@ -102,8 +102,8 @@ const IncidentMonitor: React.FC = () => {
                         notification.onclick = () => {
                             try {
                                 window.focus();
-                                // HashRouter friendly navigation
-                                window.location.hash = '#/dashboard/alerts';
+                                // HashRouter friendly - open live map in Nativefier/Electron or browser
+                                window.location.hash = '#/dashboard/map';
                             } catch (err) {
                                 console.error('Failed to handle notification click:', err);
                             }

@@ -33,11 +33,10 @@ const Header: React.FC = () => {
     };
 
     const handleNotificationClick = (incident: Incident) => {
-        const isActive =
-            incident.status === IncidentStatus.ACTIVE || incident.status === IncidentStatus.RESPONDING;
-        const target = isActive ? '/dashboard/alerts' : '/dashboard/reports';
         setIsNotificationsOpen(false);
-        navigate(target);
+        navigate('/dashboard/map', {
+            state: { focusIncidentId: incident.id },
+        });
     };
     
     return (

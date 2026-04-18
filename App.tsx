@@ -3,7 +3,7 @@ import React, { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
-import PasskeyGate from './components/PasskeyGate';
+
 
 // Lazy load pages for better performance
 const DashboardLayout = lazy(() => import('./pages/DashboardLayout'));
@@ -40,22 +40,8 @@ const App: React.FC = () => {
                             <Route path="map" element={<LiveMap />} />
                             <Route path="alerts" element={<Alerts />} />
                             <Route path="devices" element={<Devices />} />
-                            <Route
-                                path="reports"
-                                element={
-                                    <PasskeyGate scope="reports" title="Incident Reports & Logs">
-                                        <Reports />
-                                    </PasskeyGate>
-                                }
-                            />
-                            <Route
-                                path="settings"
-                                element={
-                                    <PasskeyGate scope="settings" title="Settings">
-                                        <Settings />
-                                    </PasskeyGate>
-                                }
-                            />
+                            <Route path="reports" element={<Reports />} />
+                            <Route path="settings" element={<Settings />} />
                         </Route>
                         <Route path="*" element={<Navigate to="/dashboard" replace />} />
                     </Routes>

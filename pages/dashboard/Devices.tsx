@@ -2,8 +2,45 @@
 import React, { useEffect, useState } from 'react';
 import { Smartphone, PlusCircle, Loader2 } from 'lucide-react';
 import { registerDeviceWithLocation, supabase } from '../../services/supabase';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+
+/** Detect Electron/Nativefier for map sizing workarounds. */
+const isElectron = typeof navigator !== 'undefined' && /Electron|nativefier/i.test(navigator.userAgent);
+
+/** Custom location pin icon (DivIcon) - avoids default Leaflet marker image loading issues in Nativefier/Electron. */
+const locationPinIcon = new L.DivIcon({
+    html: `<div style="display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 24 36" fill="#E53935"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12zm0 17c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5z"/></svg></div>`,
+    className: 'bg-transparent border-0',
+    iconSize: [32, 40],
+    iconAnchor: [16, 40],
+});
+
+function MapResizer() {
+    const map = useMap();
+    useEffect(() => {
+        const run = () => map.invalidateSize();
+        requestAnimationFrame(run);
+        const t1 = setTimeout(run, 50);
+        const t2 = setTimeout(run, 200);
+        const t3 = setTimeout(run, 500);
+        const t4 = setTimeout(run, 1000);
+        const t5 = isElectron ? setTimeout(run, 2000) : null;
+        const handleResize = () => map.invalidateSize();
+        window.addEventListener('resize', handleResize);
+        const container = map.getContainer();
+        const ro = container ? new ResizeObserver(() => map.invalidateSize()) : null;
+        if (ro && container) ro.observe(container);
+        return () => {
+            [t1, t2, t3, t4].forEach(clearTimeout);
+            if (t5) clearTimeout(t5);
+            window.removeEventListener('resize', handleResize);
+            if (ro && container) ro.unobserve(container);
+        };
+    }, [map]);
+    return null;
+}
 
 type DeviceRow = {
     id: number;
@@ -65,14 +102,15 @@ const LocationPicker: React.FC<{
         <MapContainer
             center={position ?? VALENCIA_CITY_CENTER}
             zoom={14}
-            style={{ height: '260px', width: '100%', borderRadius: '0.5rem', overflow: 'hidden' }}
+            style={{ height: '260px', minHeight: '260px', width: '100%', borderRadius: '0.5rem', overflow: 'hidden' }}
         >
             <TileLayer
-                attribution='&copy; OpenStreetMap contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
+            <MapResizer />
             <MapClickHandler />
-            {position && <Marker position={position} />}
+            {position && <Marker position={position} icon={locationPinIcon} />}
         </MapContainer>
     );
 };
@@ -87,6 +125,8 @@ const Devices: React.FC = () => {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [pickedLocation, setPickedLocation] = useState<LatLngValue>(null);
     const [isMapMounted, setIsMapMounted] = useState(false);
+    const [mapContainerReady, setMapContainerReady] = useState(false);
+    const mapWrapperRef = React.useRef<HTMLDivElement>(null);
     const [form, setForm] = useState<DeviceFormState>({
         device_uid: '',
         custom_device_uid: '',
@@ -101,6 +141,36 @@ const Devices: React.FC = () => {
     useEffect(() => {
         setIsMapMounted(true);
     }, []);
+
+    // Wait for map wrapper to have dimensions before rendering map (fixes half-map in Nativefier/Electron)
+    useEffect(() => {
+        if (!showForm || !isMapMounted) {
+            setMapContainerReady(false);
+            return;
+        }
+        const el = mapWrapperRef.current;
+        if (!el) return;
+        const check = () => {
+            if (el.offsetHeight > 0 && el.offsetWidth > 0) {
+                setMapContainerReady(true);
+                return true;
+            }
+            return false;
+        };
+        if (check()) return;
+        const ro = new ResizeObserver(() => {
+            if (check()) ro.disconnect();
+        });
+        ro.observe(el);
+        const t = setTimeout(() => {
+            check();
+            ro.disconnect();
+        }, isElectron ? 600 : 150);
+        return () => {
+            ro.disconnect();
+            clearTimeout(t);
+        };
+    }, [showForm, isMapMounted]);
 
     // Auto-fill address when a pin is dropped on the map
     useEffect(() => {
@@ -356,8 +426,11 @@ const Devices: React.FC = () => {
                                 Click on the map to drop a pin where this device is installed. Latitude and longitude
                                 will be filled automatically.
                             </p>
-                            <div className="w-full rounded-lg overflow-hidden border border-gray-700 bg-black/40">
-                                {isMapMounted && (
+                            <div
+                                ref={mapWrapperRef}
+                                className="w-full rounded-lg overflow-hidden border border-gray-700 bg-black/40 min-h-[260px]"
+                            >
+                                {mapContainerReady ? (
                                     <LocationPicker
                                         value={pickedLocation}
                                         onChange={value => {
@@ -371,6 +444,10 @@ const Devices: React.FC = () => {
                                             }
                                         }}
                                     />
+                                ) : (
+                                    <div className="h-[260px] flex items-center justify-center bg-[#121212] text-gray-500 text-sm">
+                                        Loading map...
+                                    </div>
                                 )}
                             </div>
                             <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
