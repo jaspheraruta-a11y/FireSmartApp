@@ -2,6 +2,17 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Incident, IncidentStatus, SensorData } from '../types';
 
+// ─── Truck Location Types ─────────────────────────────────────────────────────
+export type TruckLocation = {
+    id: number;
+    truck_id: string;
+    latitude: number;
+    longitude: number;
+    heading: number | null;
+    status: string;
+    updated_at: string;
+};
+
 // IMPORTANT:
 // Never expose your service_role / secret key in frontend code.
 // Use the PUBLIC anon key from your Supabase project's API settings.
@@ -403,4 +414,90 @@ export const resolveIncident = async (incidentId: string) => {
         console.error('Error resolving incident:', error);
         throw error;
     }
+};
+
+// ─── Truck Location Subscription ─────────────────────────────────────────────
+/**
+ * Subscribes to real-time updates from the truck_locations table.
+ * Calls `callback` with the latest array of truck locations (one per truck_id).
+ * Returns a cleanup function to stop polling and unsubscribe.
+ *
+ * NOTE: If no trucks appear on the map, the most common cause is a missing
+ * Supabase RLS SELECT policy. Run in the Supabase SQL editor:
+ *   CREATE POLICY "Allow anon select truck_locations" ON public.truck_locations
+ *   FOR SELECT TO anon USING (true);
+ */
+export const subscribeToTruckLocations = (
+    callback: (trucks: TruckLocation[]) => void
+) => {
+    let pollingInterval: NodeJS.Timeout | null = null;
+    let isFetching = false;
+
+    const load = async () => {
+        if (isFetching) return;
+        isFetching = true;
+        try {
+            const { data, error } = await supabase
+                .from('truck_locations')
+                .select('id, truck_id, latitude, longitude, heading, status, updated_at')
+                .order('updated_at', { ascending: false });
+
+            if (error) {
+                console.error('[FireSmart] Error fetching truck_locations:', {
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code,
+                });
+                console.warn(
+                    '[FireSmart] Truck location fetch failed. ' +
+                    'Check Supabase RLS: ensure the anon role has SELECT on truck_locations. ' +
+                    'Run: CREATE POLICY \'anon select truck_locations\' ON public.truck_locations FOR SELECT TO anon USING (true);'
+                );
+                callback([]);
+                return;
+            }
+
+            if (!data?.length) {
+                console.warn('[FireSmart] truck_locations table returned 0 rows. Ensure the truck app is running and inserting data.');
+                callback([]);
+                return;
+            }
+
+            // Deduplicate: keep only the most-recent row per truck_id
+            // (query is already sorted by updated_at DESC, so first hit wins)
+            const seen = new Set<string>();
+            const deduplicated = (data as TruckLocation[]).filter(t => {
+                if (seen.has(t.truck_id)) return false;
+                seen.add(t.truck_id);
+                return true;
+            });
+
+            console.log(`[FireSmart] Loaded ${deduplicated.length} truck location(s).`, deduplicated);
+            callback(deduplicated);
+        } finally {
+            isFetching = false;
+        }
+    };
+
+    // Immediate initial load
+    void load();
+
+    // Poll every 3 seconds as fallback
+    pollingInterval = setInterval(() => void load(), 3000);
+
+    // Primary: Supabase Realtime
+    const channel = supabase
+        .channel('truck-locations-changes')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'truck_locations' },
+            () => void load()
+        )
+        .subscribe();
+
+    return () => {
+        if (pollingInterval) clearInterval(pollingInterval);
+        supabase.removeChannel(channel);
+    };
 };

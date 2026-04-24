@@ -2,16 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import LiveMapComponent from '../../components/LiveMapComponent';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
-import { subscribeToIncidents } from '../../services/supabase';
+import { subscribeToIncidents, subscribeToTruckLocations, TruckLocation } from '../../services/supabase';
 import { Incident, IncidentStatus } from '../../types';
 
 const LiveMap: React.FC = () => {
     const [incidents, setIncidents] = useState<Incident[]>([]);
+    const [truckLocations, setTruckLocations] = useState<TruckLocation[]>([]);
     const location = useLocation();
     const focusIncidentId = (location.state as { focusIncidentId?: string } | null)?.focusIncidentId ?? null;
 
     useEffect(() => {
         const unsubscribe = subscribeToIncidents(setIncidents);
+        return () => unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        const unsubscribe = subscribeToTruckLocations(setTruckLocations);
         return () => unsubscribe();
     }, []);
 
@@ -27,10 +33,20 @@ const LiveMap: React.FC = () => {
                 <div className="flex items-center space-x-2"><div className="w-4 h-4 rounded-full bg-red-500 pinpoint-blinker-red"></div><span>Active ({activeIncidents.length})</span></div>
                 <div className="flex items-center space-x-2"><div className="w-4 h-4 rounded-full bg-yellow-500"></div><span>Responding ({respondingIncidents.length})</span></div>
                 <div className="flex items-center space-x-2"><div className="w-4 h-4 rounded-full bg-green-500"></div><span>Resolved ({resolvedIncidents.length})</span></div>
+                {truckLocations.length > 0 && (
+                    <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 rounded-full bg-blue-400" style={{ boxShadow: '0 0 6px #60a5fa' }}></div>
+                        <span>Trucks ({truckLocations.length})</span>
+                    </div>
+                )}
             </div>
             <div className="flex-grow rounded-lg overflow-hidden border border-gray-700 bg-white min-h-[500px]" style={{ minHeight: '500px', height: '60vh' }}>
                 <ErrorBoundary>
-                    <LiveMapComponent incidents={incidents} focusIncidentId={focusIncidentId} />
+                    <LiveMapComponent
+                        incidents={incidents}
+                        focusIncidentId={focusIncidentId}
+                        truckLocations={truckLocations}
+                    />
                 </ErrorBoundary>
             </div>
         </div>

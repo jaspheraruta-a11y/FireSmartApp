@@ -37,7 +37,7 @@ CREATE TABLE public.locations (
 CREATE TABLE public.profiles (
   id uuid NOT NULL,
   full_name text,
-  role text DEFAULT 'resident'::text CHECK (role = ANY (ARRAY['admin'::text, 'bfp'::text, 'resident'::text])),
+  role text DEFAULT 'admin'::text CHECK (role = ANY (ARRAY['admin'::text, 'bfp'::text, 'resident'::text])),
   phone text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
@@ -65,3 +65,35 @@ CREATE TABLE public.sensor_readings (
   CONSTRAINT sensor_readings_pkey PRIMARY KEY (id),
   CONSTRAINT sensor_readings_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.devices(id)
 );
+CREATE TABLE public.truck_locations (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  truck_id text NOT NULL UNIQUE,
+  latitude numeric NOT NULL,
+  longitude numeric NOT NULL,
+  heading numeric,
+  status text DEFAULT 'on_duty'::text,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT truck_locations_pkey PRIMARY KEY (id)
+);
+
+-- ─── RLS Policies ──────────────────────────────────────────────────────────────
+-- Run these in the Supabase SQL editor if truck markers are not appearing on the map.
+-- The anon role needs SELECT permission on truck_locations.
+--
+-- Enable RLS on the table first (if not already enabled):
+--   ALTER TABLE public.truck_locations ENABLE ROW LEVEL SECURITY;
+--
+-- Then grant SELECT to anon:
+CREATE POLICY "Allow anon select truck_locations"
+  ON public.truck_locations
+  FOR SELECT
+  TO anon
+  USING (true);
+--
+-- And grant INSERT/UPDATE so the truck app can upsert its location:
+CREATE POLICY "Allow anon upsert truck_locations"
+  ON public.truck_locations
+  FOR ALL
+  TO anon
+  USING (true)
+  WITH CHECK (true);

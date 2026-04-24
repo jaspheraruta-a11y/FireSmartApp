@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Incident, IncidentStatus } from '../types';
+import { TruckLocation } from '../services/supabase';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const VALENCIA_CITY_CENTER: [number, number] = [7.9064, 125.0942];
@@ -63,6 +64,7 @@ function interpolateRoute(coords: [number, number][], t: number): [number, numbe
 interface LiveMapComponentProps {
     incidents: Incident[];
     focusIncidentId?: string | null;
+    truckLocations?: TruckLocation[];
 }
 
 type RouteResult = {
@@ -156,6 +158,33 @@ const BFP_ICON = new L.DivIcon({
     iconSize: [80, 56],
     iconAnchor: [40, 28],
 });
+
+// ─── Truck Dot Icon (pulsing blue, distance badge on top) ───────────────────────
+const createTruckIcon = (distanceKmVal: number | null) => {
+    const label = distanceKmVal !== null
+        ? distanceKmVal < 1
+            ? `${(distanceKmVal * 1000).toFixed(0)}m`
+            : `${distanceKmVal.toFixed(1)}km`
+        : '';
+
+    const html = `
+    <div class="truck-dot-wrapper">
+      ${label ? `<div class="truck-dist-badge">${label}</div>` : ''}
+      <div class="truck-dot-core">
+        <div class="truck-dot-pulse truck-dot-pulse-1"></div>
+        <div class="truck-dot-pulse truck-dot-pulse-2"></div>
+        <div class="truck-dot-pulse truck-dot-pulse-3"></div>
+        <div class="truck-dot-center"></div>
+      </div>
+    </div>`;
+
+    return new L.DivIcon({
+        html,
+        className: 'bg-transparent border-0',
+        iconSize: [48, 64],
+        iconAnchor: [24, 40],
+    });
+};
 
 // ─── Map sub-components ───────────────────────────────────────────────────────
 const isElectron = typeof navigator !== 'undefined' && /Electron|nativefier/i.test(navigator.userAgent);
@@ -319,6 +348,7 @@ function AnimatedPolyline({ coords, incidentId }: { coords: [number, number][]; 
 const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
     incidents,
     focusIncidentId = null,
+    truckLocations = [],
 }) => {
     const [isMounted, setIsMounted] = useState(false);
     const [containerReady, setContainerReady] = useState(false);
@@ -446,6 +476,28 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
                                 eventHandlers={{ click: () => setSelectedIncident(incident) }}
                             />
                         ))}
+
+                    {/* Fire Truck markers — pulsing blue dot with distance to nearest active fire */}
+                    {truckLocations
+                        .filter(t => t?.latitude != null && t?.longitude != null)
+                        .map(truck => {
+                            // Find closest active/responding fire
+                            const nearestDistKm = mapIncidents
+                                .filter(i => i?.location?.lat != null && i?.location?.lng != null)
+                                .reduce<number | null>((best, i) => {
+                                    const d = distanceKm(truck.latitude, truck.longitude, i.location.lat, i.location.lng);
+                                    return best === null || d < best ? d : best;
+                                }, null);
+
+                            return (
+                                <Marker
+                                    key={truck.truck_id}
+                                    position={[truck.latitude, truck.longitude]}
+                                    icon={createTruckIcon(nearestDistKm)}
+                                    zIndexOffset={1000}
+                                />
+                            );
+                        })}
                 </MapContainer>
             )}
 
@@ -501,6 +553,7 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
                                                 <div className="map-route-item-stats">
                                                     <span className="map-stat blue">🛣 {route.distanceKm.toFixed(2)} km</span>
                                                     <span className="map-stat green">⏱ ~{Math.ceil(route.durationMin)} min</span>
+                                                    <span className="map-stat" style={{ color: '#a0aec0', fontSize: '10px' }}>@ {(route.distanceKm / (route.durationMin / 60)).toFixed(0)} kph</span>
                                                 </div>
                                             ) : (
                                                 <div className="map-route-calculating">
@@ -587,6 +640,7 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
                                                     <div>
                                                         <div className="map-popup-card-label">Est. travel time</div>
                                                         <div className="map-popup-card-value text-green">~{Math.ceil(route.durationMin)} min</div>
+                                                        <div style={{ fontSize: '10px', color: '#718096', marginTop: '2px' }}>@ {(route.distanceKm / (route.durationMin / 60)).toFixed(0)} kph avg</div>
                                                     </div>
                                                 </>
                                             ) : (
@@ -640,6 +694,10 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
                     <div className="map-legend-item">
                         <div className="map-legend-dot" style={{ background: '#00d4ff', boxShadow: '0 0 6px #00d4ff' }} />
                         <span>Route</span>
+                    </div>
+                    <div className="map-legend-item">
+                        <div className="map-legend-dot" style={{ background: '#3b82f6', boxShadow: '0 0 6px #60a5fa', border: '2px solid #93c5fd' }} />
+                        <span>Fire Truck</span>
                     </div>
                 </div>
             )}
