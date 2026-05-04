@@ -19,6 +19,7 @@ CREATE TABLE public.fire_alerts (
   alert_level text NOT NULL CHECK (alert_level = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])),
   status text DEFAULT 'active'::text,
   triggered_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  alert_type text,
   CONSTRAINT fire_alerts_pkey PRIMARY KEY (id),
   CONSTRAINT fire_alerts_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.devices(id),
   CONSTRAINT fire_alerts_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.locations(id)
@@ -75,25 +76,3 @@ CREATE TABLE public.truck_locations (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT truck_locations_pkey PRIMARY KEY (id)
 );
-
--- ─── RLS Policies ──────────────────────────────────────────────────────────────
--- Run these in the Supabase SQL editor if truck markers are not appearing on the map.
--- The anon role needs SELECT permission on truck_locations.
---
--- Enable RLS on the table first (if not already enabled):
---   ALTER TABLE public.truck_locations ENABLE ROW LEVEL SECURITY;
---
--- Then grant SELECT to anon:
-CREATE POLICY "Allow anon select truck_locations"
-  ON public.truck_locations
-  FOR SELECT
-  TO anon
-  USING (true);
---
--- And grant INSERT/UPDATE so the truck app can upsert its location:
-CREATE POLICY "Allow anon upsert truck_locations"
-  ON public.truck_locations
-  FOR ALL
-  TO anon
-  USING (true)
-  WITH CHECK (true);

@@ -10,13 +10,16 @@ const Header: React.FC = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [activeAlerts, setActiveAlerts] = useState(0);
+    const [activeAlertsAreFire, setActiveAlertsAreFire] = useState(true);
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
     useEffect(() => {
         const unsubscribe = subscribeToIncidents((incidents: Incident[]) => {
-            const active = incidents.filter(i => i.status === IncidentStatus.ACTIVE).length;
-            setActiveAlerts(active);
+            const activeList = incidents.filter(i => i.status === IncidentStatus.ACTIVE);
+            const anyFire = activeList.some(i => i.alertType === 'fire');
+            setActiveAlerts(activeList.length);
+            setActiveAlertsAreFire(anyFire);
 
             const sorted = [...incidents].sort(
                 (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -63,7 +66,14 @@ const Header: React.FC = () => {
                         }}
                     />
                     {activeAlerts > 0 && (
-                        <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#E53935] text-xs font-bold text-white pulse-red-animation">
+                        <span
+                            className={
+                                'absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white ' +
+                                (activeAlertsAreFire
+                                    ? 'bg-[#E53935] pulse-red-animation'
+                                    : 'bg-[#CA8A04] pulse-yellow-animation')
+                            }
+                        >
                             {activeAlerts}
                         </span>
                     )}
@@ -92,9 +102,20 @@ const Header: React.FC = () => {
                                                 ? incident.resolvedAt
                                                 : incident.timestamp
                                         ).toLocaleString();
-                                        const title = isActive
-                                            ? `Active fire on ${incident.locationName || 'Unknown location'}`
-                                            : `Resolved incident on ${incident.locationName || 'Unknown location'}`;
+                                        const isSmokeActive =
+                                            isActive &&
+                                            incident.status === IncidentStatus.ACTIVE &&
+                                            incident.alertType === 'smoke';
+                                        let title: string;
+                                        if (!isActive) {
+                                            title = `Resolved incident on ${incident.locationName || 'Unknown location'}`;
+                                        } else if (isSmokeActive) {
+                                            title = `Smoke alert at ${incident.locationName || 'Unknown location'}`;
+                                        } else if (incident.status === IncidentStatus.ACTIVE) {
+                                            title = `Active fire on ${incident.locationName || 'Unknown location'}`;
+                                        } else {
+                                            title = `Response in progress at ${incident.locationName || 'Unknown location'}`;
+                                        }
                                         const subtitle = incident.address || 'No address on record';
 
                                         return (
@@ -108,7 +129,11 @@ const Header: React.FC = () => {
                                                     <span
                                                         className={
                                                             'inline-flex h-2 w-2 rounded-full ' +
-                                                            (isActive ? 'bg-[#E53935]' : 'bg-emerald-400')
+                                                            (!isActive
+                                                                ? 'bg-emerald-400'
+                                                                : isSmokeActive
+                                                                  ? 'bg-amber-400'
+                                                                  : 'bg-[#E53935]')
                                                         }
                                                     />
                                                 </div>

@@ -18,6 +18,9 @@ export enum IncidentStatus {
     RESOLVED = 'resolved',
 }
 
+/** How the alert was raised; drives alarm UI (yellow smoke vs red fire). */
+export type IncidentAlertType = 'fire' | 'smoke';
+
 export interface SensorData {
     temperature: number; // in Celsius
     smoke: number; // PPM
@@ -35,6 +38,8 @@ export interface Incident {
     address: string;
     locationName: string;
     status: IncidentStatus;
+    /** From `fire_alerts.alert_type`; defaults to `fire` when null or unknown. */
+    alertType: IncidentAlertType;
     sensorData: SensorData;
     assignedUnit?: string;
     resolvedAt?: string;

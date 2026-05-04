@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Incident, IncidentStatus } from '../types';
+import { Incident, IncidentAlertType, IncidentStatus } from '../types';
 import { TruckLocation } from '../services/supabase';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -102,7 +102,10 @@ async function fetchOsrmRoute(
 }
 
 // ─── Marker Icons ─────────────────────────────────────────────────────────────
-const createMarkerIcon = (status: IncidentStatus | string | undefined) => {
+const createMarkerIcon = (
+    status: IncidentStatus | string | undefined,
+    alertType?: IncidentAlertType
+) => {
     const normalized = normalizeStatus(status);
     let bg: string;
     let glow: string;
@@ -111,10 +114,17 @@ const createMarkerIcon = (status: IncidentStatus | string | undefined) => {
 
     switch (normalized) {
         case IncidentStatus.ACTIVE:
-            bg = 'linear-gradient(135deg,#ff6b35,#e53935,#c62828)';
-            glow = 'rgba(229,57,53,0.8)';
-            pulse = 'neon-pulse-red';
-            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white"><text y="20" font-size="20" font-family="Arial">🔥</text></svg>`;
+            if (alertType === 'smoke') {
+                bg = 'linear-gradient(135deg,#fde047,#eab308,#ca8a04)';
+                glow = 'rgba(234,179,8,0.85)';
+                pulse = 'neon-pulse-yellow';
+                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white"><text y="20" font-size="18" font-family="Arial">💨</text></svg>`;
+            } else {
+                bg = 'linear-gradient(135deg,#ff6b35,#e53935,#c62828)';
+                glow = 'rgba(229,57,53,0.8)';
+                pulse = 'neon-pulse-red';
+                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white"><text y="20" font-size="20" font-family="Arial">🔥</text></svg>`;
+            }
             break;
         case IncidentStatus.RESPONDING:
             bg = 'linear-gradient(135deg,#fdd835,#fb8c00)';
@@ -472,7 +482,7 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
                             <Marker
                                 key={incident.id}
                                 position={[incident.location.lat, incident.location.lng]}
-                                icon={createMarkerIcon(incident.status)}
+                                icon={createMarkerIcon(incident.status, incident.alertType)}
                                 eventHandlers={{ click: () => setSelectedIncident(incident) }}
                             />
                         ))}
@@ -538,7 +548,12 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
                             .map(incident => {
                                 const route = routeMap.get(incident.id);
                                 const statusNorm = normalizeStatus(incident.status);
-                                const statusColor = statusNorm === IncidentStatus.ACTIVE ? '#ff4444' : '#fdd835';
+                                const statusColor =
+                                    statusNorm === IncidentStatus.ACTIVE
+                                        ? incident.alertType === 'smoke'
+                                            ? '#eab308'
+                                            : '#ff4444'
+                                        : '#fdd835';
                                 return (
                                     <li
                                         key={incident.id}
@@ -584,7 +599,12 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
                         <div className="map-popup-header">
                             <div>
                                 <div className="map-popup-title">
-                                    {normalizeStatus(selectedIncident.status) === IncidentStatus.ACTIVE ? '🔥' : '🚒'} Incident Details
+                                    {normalizeStatus(selectedIncident.status) === IncidentStatus.ACTIVE
+                                        ? selectedIncident.alertType === 'smoke'
+                                            ? '💨'
+                                            : '🔥'
+                                        : '🚒'}{' '}
+                                    Incident Details
                                 </div>
                                 <div className="map-popup-id">{selectedIncident.id}</div>
                             </div>
@@ -596,7 +616,15 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
                             <div className="map-popup-grid-2">
                                 <div className="map-popup-card">
                                     <div className="map-popup-card-label">Status</div>
-                                    <div className={`map-popup-card-value ${normalizeStatus(selectedIncident.status) === IncidentStatus.ACTIVE ? 'text-red' : 'text-yellow'}`}>
+                                    <div
+                                        className={`map-popup-card-value ${
+                                            normalizeStatus(selectedIncident.status) === IncidentStatus.ACTIVE
+                                                ? selectedIncident.alertType === 'smoke'
+                                                    ? 'text-yellow'
+                                                    : 'text-red'
+                                                : 'text-yellow'
+                                        }`}
+                                    >
                                         {String(selectedIncident.status ?? 'active').toUpperCase()}
                                     </div>
                                 </div>

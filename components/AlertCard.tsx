@@ -31,14 +31,26 @@ const statusStyles = {
 
 const AlertCard: React.FC<AlertCardProps> = ({ incident, onResolve, onDispatch, onViewOnMap, isResolving }) => {
     const styles = statusStyles[incident.status];
+    const isSmokeActive =
+        incident.status === IncidentStatus.ACTIVE && incident.alertType === 'smoke';
+    const cardBorder = isSmokeActive ? 'border-amber-500' : styles.borderColor;
+    const cardBg = isSmokeActive ? 'bg-amber-950/35' : styles.bgColor;
+    const cardGlow = isSmokeActive ? 'glow-yellow' : styles.glowClass;
 
     return (
-        <div className={`rounded-xl border ${styles.borderColor} ${styles.bgColor} overflow-hidden shadow-lg transition-shadow duration-300 hover:shadow-2xl`}>
-             <div className={`p-4 border-b ${styles.borderColor}`}>
+        <div
+            className={`rounded-xl border ${cardBorder} ${cardBg} ${cardGlow} overflow-hidden shadow-lg transition-shadow duration-300 hover:shadow-2xl`}
+        >
+             <div className={`p-4 border-b ${cardBorder}`}>
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-bold text-white">{incident.locationName}</h3>
-                     <span className={`px-3 py-1 text-sm font-semibold rounded-full ${styles.bgColor} border ${styles.borderColor} capitalize`}>
+                     <span
+                         className={`px-3 py-1 text-sm font-semibold rounded-full ${cardBg} border ${cardBorder} capitalize`}
+                     >
                         {incident.status}
+                        {isSmokeActive && (
+                            <span className="ml-2 text-amber-200 font-normal normal-case">(smoke)</span>
+                        )}
                     </span>
                 </div>
                 <p className="text-sm text-gray-400 mt-1">{new Date(incident.timestamp).toLocaleString()}</p>

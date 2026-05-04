@@ -1,6 +1,6 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Incident, IncidentStatus, SensorData } from '../types';
+import { Incident, IncidentAlertType, IncidentStatus, SensorData } from '../types';
 
 // ─── Truck Location Types ─────────────────────────────────────────────────────
 export type TruckLocation = {
@@ -172,6 +172,7 @@ type FireAlertRow = {
     device_id: number | null;
     location_id: number | null;
     alert_level: string;
+    alert_type: string | null;
     status: string;
     triggered_at: string;
 };
@@ -225,6 +226,9 @@ const mapRowToIncident = (
               ? IncidentStatus.RESPONDING
               : IncidentStatus.ACTIVE;
 
+    const rawAlertType = (row.alert_type ?? '').toString().toLowerCase().trim();
+    const alertType: IncidentAlertType = rawAlertType === 'smoke' ? 'smoke' : 'fire';
+
     return {
         id: String(row.id),
         deviceId,
@@ -236,6 +240,7 @@ const mapRowToIncident = (
         address: location?.address ?? 'Unknown location',
         locationName: location?.location_name ?? 'Unknown location',
         status,
+        alertType,
         sensorData,
         assignedUnit: undefined,
         resolvedAt: status === IncidentStatus.RESOLVED ? row.triggered_at : undefined,
@@ -314,7 +319,7 @@ export const subscribeToIncidents = (callback: (incidents: Incident[]) => void) 
             // Fetch fire_alerts only first (no joins) so Alerts page shows data even if RLS blocks locations/devices
             const { data: alertRows, error } = await supabase
                 .from('fire_alerts')
-                .select('id, device_id, location_id, alert_level, status, triggered_at')
+                .select('id, device_id, location_id, alert_level, alert_type, status, triggered_at')
                 .order('triggered_at', { ascending: false });
 
             if (error) {
