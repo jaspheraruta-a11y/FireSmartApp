@@ -5,17 +5,52 @@ import { Incident } from '../types';
 
 interface AnalyticsChartProps {
     incidents: Incident[];
+    range: 'weekly' | 'monthly' | 'yearly';
 }
 
-const AnalyticsChart: React.FC<AnalyticsChartProps> = ({ incidents }) => {
-    // Process data for the last 7 days
-    const data = Array.from({ length: 7 }).map((_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const day = date.toLocaleDateString('en-US', { weekday: 'short' });
-        const count = incidents.filter(inc => new Date(inc.timestamp).toDateString() === date.toDateString()).length;
-        return { name: day, incidents: count };
-    }).reverse();
+const AnalyticsChart: React.FC<AnalyticsChartProps> = ({ incidents, range }) => {
+    const now = new Date();
+
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const addDays = (d: Date, days: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + days);
+
+    const incidentDates = incidents.map(i => new Date(i.timestamp));
+
+    const data = (() => {
+        if (range === 'weekly') {
+            // Last 7 days (daily)
+            const start = startOfDay(addDays(now, -6));
+            return Array.from({ length: 7 }).map((_, idx) => {
+                const date = addDays(start, idx);
+                const label = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const count = incidentDates.filter(d => startOfDay(d).getTime() === date.getTime()).length;
+                return { name: label, incidents: count };
+            });
+        }
+
+        if (range === 'monthly') {
+            // Last 30 days (daily)
+            const start = startOfDay(addDays(now, -29));
+            return Array.from({ length: 30 }).map((_, idx) => {
+                const date = addDays(start, idx);
+                const label = date.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+                const count = incidentDates.filter(d => startOfDay(d).getTime() === date.getTime()).length;
+                return { name: label, incidents: count };
+            });
+        }
+
+        // Yearly: last 12 months (monthly buckets)
+        const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const startMonth = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+        const months = Array.from({ length: 12 }).map((_, i) => new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1));
+
+        return months.map(m => {
+            const key = monthKey(m);
+            const label = m.toLocaleDateString('en-US', { month: 'short' });
+            const count = incidentDates.filter(d => monthKey(d) === key).length;
+            return { name: label, incidents: count };
+        });
+    })();
 
     return (
         <div style={{ width: '100%', height: 300 }}>

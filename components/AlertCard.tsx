@@ -1,5 +1,5 @@
 
-import { Map, MapPin, Thermometer } from 'lucide-react';
+import { Flame, Map, MapPin, Thermometer } from 'lucide-react';
 import React from 'react';
 import { Incident, IncidentStatus } from '../types';
 
@@ -44,9 +44,12 @@ const AlertCard: React.FC<AlertCardProps> = ({ incident, onResolve, onDispatch, 
              <div className={`p-4 border-b ${cardBorder}`}>
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-bold text-white">{incident.locationName}</h3>
-                     <span
+                    <span
                          className={`px-3 py-1 text-sm font-semibold rounded-full ${cardBg} border ${cardBorder} capitalize`}
                      >
+                        {incident.alertType === 'fire' && (
+                            <Flame className="inline-block h-3.5 w-3.5 text-[#ff6600] mr-1.5 align-[-2px]" />
+                        )}
                         {incident.status}
                         {isSmokeActive && (
                             <span className="ml-2 text-amber-200 font-normal normal-case">(smoke)</span>

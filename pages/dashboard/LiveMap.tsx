@@ -9,7 +9,8 @@ const LiveMap: React.FC = () => {
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [truckLocations, setTruckLocations] = useState<TruckLocation[]>([]);
     const location = useLocation();
-    const focusIncidentId = (location.state as { focusIncidentId?: string } | null)?.focusIncidentId ?? null;
+    const focusIncidentId = (location.state as { focusIncidentId?: string; fromTruckId?: string } | null)?.focusIncidentId ?? null;
+    const fromTruckId = (location.state as { focusIncidentId?: string; fromTruckId?: string } | null)?.fromTruckId ?? null;
 
     useEffect(() => {
         const unsubscribe = subscribeToIncidents(setIncidents);
@@ -46,6 +47,7 @@ const LiveMap: React.FC = () => {
                         incidents={incidents}
                         focusIncidentId={focusIncidentId}
                         truckLocations={truckLocations}
+                        routeOriginTruckId={fromTruckId}
                     />
                 </ErrorBoundary>
             </div>

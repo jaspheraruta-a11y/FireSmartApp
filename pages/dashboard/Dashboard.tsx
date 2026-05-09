@@ -9,6 +9,7 @@ import { Incident, IncidentStatus } from '../../types';
 
 const Dashboard: React.FC = () => {
     const [incidents, setIncidents] = useState<Incident[]>([]);
+    const [analyticsRange, setAnalyticsRange] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
     const navigate = useNavigate();
     
     useEffect(() => {
@@ -57,8 +58,36 @@ const Dashboard: React.FC = () => {
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 bg-[#2A2A2A] p-6 rounded-lg border border-gray-700">
-                    <h2 className="text-xl font-semibold text-white mb-4">Incident Analytics (Last 7 Days)</h2>
-                    <AnalyticsChart incidents={incidents} />
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                        <h2 className="text-xl font-semibold text-white">
+                            Incident Analytics
+                            <span className="text-sm font-normal text-gray-400 ml-2">
+                                ({analyticsRange === 'weekly' ? 'Weekly' : analyticsRange === 'monthly' ? 'Monthly' : 'Yearly'})
+                            </span>
+                        </h2>
+                        <div className="inline-flex rounded-lg border border-gray-700 overflow-hidden bg-[#1F1F1F]">
+                            {[
+                                { id: 'weekly', label: 'Weekly' },
+                                { id: 'monthly', label: 'Monthly' },
+                                { id: 'yearly', label: 'Yearly' },
+                            ].map(opt => (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => setAnalyticsRange(opt.id as any)}
+                                    className={
+                                        'px-3 py-1.5 text-sm font-semibold transition-colors ' +
+                                        (analyticsRange === opt.id
+                                            ? 'bg-[#E53935] text-white'
+                                            : 'text-gray-300 hover:bg-[#2A2A2A]')
+                                    }
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <AnalyticsChart incidents={incidents} range={analyticsRange} />
                 </div>
                 <div className="bg-[#2A2A2A] p-6 rounded-lg border border-gray-700">
                      <h2 className="text-xl font-semibold text-white mb-4">Fire-Prone Area Heatmap</h2>

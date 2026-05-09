@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Flame } from 'lucide-react';
 import { Incident, IncidentAlertType, IncidentStatus } from '../types';
 import { TruckLocation } from '../services/supabase';
 
@@ -65,12 +66,15 @@ interface LiveMapComponentProps {
     incidents: Incident[];
     focusIncidentId?: string | null;
     truckLocations?: TruckLocation[];
+    /** When set, the focused incident will route from this truck instead of HQ. */
+    routeOriginTruckId?: string | null;
 }
 
 type RouteResult = {
     coords: [number, number][];
     distanceKm: number;
     durationMin: number;
+    fromKey: string;
 };
 
 // ─── OSRM Fetcher ─────────────────────────────────────────────────────────────
@@ -107,51 +111,48 @@ const createMarkerIcon = (
     alertType?: IncidentAlertType
 ) => {
     const normalized = normalizeStatus(status);
-    let bg: string;
-    let glow: string;
-    let iconSvg: string;
-    let pulse: string;
+    let accent: string;
+    let showFlame = true;
 
     switch (normalized) {
         case IncidentStatus.ACTIVE:
             if (alertType === 'smoke') {
-                bg = 'linear-gradient(135deg,#fde047,#eab308,#ca8a04)';
-                glow = 'rgba(234,179,8,0.85)';
-                pulse = 'neon-pulse-yellow';
-                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white"><text y="20" font-size="18" font-family="Arial">💨</text></svg>`;
+                accent = '#ffaa00'; // medium
             } else {
-                bg = 'linear-gradient(135deg,#ff6b35,#e53935,#c62828)';
-                glow = 'rgba(229,57,53,0.8)';
-                pulse = 'neon-pulse-red';
-                iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white"><text y="20" font-size="20" font-family="Arial">🔥</text></svg>`;
+                accent = '#ff2244'; // critical
             }
             break;
         case IncidentStatus.RESPONDING:
-            bg = 'linear-gradient(135deg,#fdd835,#fb8c00)';
-            glow = 'rgba(253,216,53,0.8)';
-            pulse = 'neon-pulse-yellow';
-            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white"><text y="20" font-size="18" font-family="Arial">🚒</text></svg>`;
+            accent = '#ff6600'; // high
             break;
         default:
-            bg = 'linear-gradient(135deg,#43a047,#1b5e20)';
-            glow = 'rgba(67,160,71,0.8)';
-            pulse = '';
-            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="white" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
+            accent = '#ffdd00'; // low
+            showFlame = false;
     }
 
+    const iconSvg = showFlame
+        ? `<svg class="fire-marker-flame" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
+             <path d="M16 3 C13.5 9 10 12 10 17 a6 6 0 0 0 12 0 c0-1.2-.2-2.2-.5-3 C19.5 15 18 13.5 18 10.5 c1.5 2.5 4 4 4 7.5 a7 7 0 0 1-14 0 C8 12.5 12 7.5 16 3 z" fill="#ffffff"/>
+             <path d="M16 11 C14.8 13.5 14 15 14 17.5 a2 2 0 0 0 4 0 c0-.7-.12-1.3-.3-1.8 C17.2 16.5 17 15.5 17 14.2 c.8 1.2 1.8 1.8 1.8 3.3 a2.5 2.5 0 0 1-5 0 C13.8 14.5 14.8 12.5 16 11 z" fill="${accent}" fill-opacity="0.9"/>
+           </svg>`
+        : `<svg class="fire-marker-flame" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+             <path fill="#ffffff" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+           </svg>`;
+
     const html = `
-    <div class="map-marker-wrapper ${pulse}">
-      <div class="map-marker-ring" style="--glow:${glow};"></div>
-      <div class="map-marker-body" style="background:${bg};box-shadow:0 0 16px ${glow},0 0 32px ${glow}44;">
+    <div class="fire-marker-wrapper" style="--accent:${accent};">
+      <div class="fire-marker-halo"></div>
+      <div class="fire-marker-circle">
         ${iconSvg}
       </div>
+      <div class="fire-marker-pin"></div>
     </div>`;
 
     return new L.DivIcon({
         html,
         className: 'bg-transparent border-0',
-        iconSize: [48, 48],
-        iconAnchor: [24, 24],
+        iconSize: [44, 54],
+        iconAnchor: [22, 54],
     });
 };
 
@@ -359,6 +360,7 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
     incidents,
     focusIncidentId = null,
     truckLocations = [],
+    routeOriginTruckId = null,
 }) => {
     const [isMounted, setIsMounted] = useState(false);
     const [containerReady, setContainerReady] = useState(false);
@@ -380,11 +382,21 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
         mapIncidents.forEach(incident => {
             const id = incident.id;
             if (!incident.location?.lat || !incident.location?.lng) return;
-            if (routeMap.has(id) || fetchingRef.current.has(id)) return;
+            const shouldUseTruckOrigin = Boolean(routeOriginTruckId && focusIncidentId && id === focusIncidentId);
+            const originTruck = shouldUseTruckOrigin
+                ? truckLocations.find(t => t.truck_id === routeOriginTruckId)
+                : null;
+            const origin: [number, number] = originTruck
+                ? [originTruck.latitude, originTruck.longitude]
+                : BFP_OFFICE;
+            const fromKey = originTruck ? `truck:${originTruck.truck_id}` : 'hq';
+
+            const existing = routeMap.get(id);
+            if ((existing && existing.fromKey === fromKey) || fetchingRef.current.has(id)) return;
             fetchingRef.current.add(id);
-            fetchOsrmRoute(BFP_OFFICE, [incident.location.lat, incident.location.lng])
+            fetchOsrmRoute(origin, [incident.location.lat, incident.location.lng])
                 .then(result => {
-                    if (result) setRouteMap(prev => new Map(prev).set(id, result));
+                    if (result) setRouteMap(prev => new Map(prev).set(id, { ...result, fromKey }));
                 })
                 .finally(() => { fetchingRef.current.delete(id); });
         });
@@ -398,7 +410,7 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
             }
             return changed ? next : prev;
         });
-    }, [mapIncidents]);
+    }, [mapIncidents, routeOriginTruckId, truckLocations, focusIncidentId, routeMap]);
 
     // Wait for container dimensions
     useEffect(() => {
@@ -599,11 +611,9 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
                         <div className="map-popup-header">
                             <div>
                                 <div className="map-popup-title">
-                                    {normalizeStatus(selectedIncident.status) === IncidentStatus.ACTIVE
-                                        ? selectedIncident.alertType === 'smoke'
-                                            ? '💨'
-                                            : '🔥'
-                                        : '🚒'}{' '}
+                                    {normalizeStatus(selectedIncident.status) === IncidentStatus.ACTIVE && selectedIncident.alertType !== 'smoke' ? (
+                                        <Flame className="inline-block h-4 w-4 text-[#ff6600] mr-1 align-[-2px]" />
+                                    ) : null}
                                     Incident Details
                                 </div>
                                 <div className="map-popup-id">{selectedIncident.id}</div>
@@ -648,11 +658,13 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
                                 const straight = selectedIncident.location?.lat != null && selectedIncident.location?.lng != null
                                     ? distanceKm(selectedIncident.location.lat, selectedIncident.location.lng, BFP_OFFICE[0], BFP_OFFICE[1]).toFixed(2)
                                     : null;
+                                const usingTruck = Boolean(routeOriginTruckId && focusIncidentId && selectedIncident.id === focusIncidentId);
+                                const originLabel = usingTruck ? `Unit ${routeOriginTruckId}` : 'BFP HQ';
                                 return (
                                     <div className="map-popup-route-card">
                                         <div className="map-popup-route-title">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2.5"><path d="M3 3l18 18M3 21l7-7m5-5l7-7"/></svg>
-                                            Route from BFP HQ
+                                            Route from {originLabel}
                                         </div>
                                         <div className="map-popup-grid-3">
                                             <div>

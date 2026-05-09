@@ -104,17 +104,17 @@
        ══════════════════════════════════ */
 
     /* ─── Keyframes ─── */
-    @keyframes neon-pulse-red-anim {
-      0%,100% { transform:scale(1); opacity:0.9; box-shadow:0 0 0 0 rgba(255,68,68,0.8); }
-      50%      { transform:scale(1.15); opacity:1; box-shadow:0 0 0 14px rgba(255,68,68,0); }
+    @keyframes fire-halo-pulse {
+      0%   { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+    @keyframes fire-glow-pulse {
+      0%, 100% { box-shadow: 0 0 10px var(--accent), 0 0 22px var(--accent); }
+      50%      { box-shadow: 0 0 16px var(--accent), 0 0 34px var(--accent); }
     }
     @keyframes neon-pulse-yellow-anim {
       0%,100% { transform:scale(1); box-shadow:0 0 0 0 rgba(253,216,53,0.8); }
       50%      { transform:scale(1.12); box-shadow:0 0 0 12px rgba(253,216,53,0); }
-    }
-    @keyframes ring-expand {
-      0%   { transform:scale(0.8); opacity:0.8; }
-      100% { transform:scale(2.2); opacity:0; }
     }
     @keyframes dash-flow {
       to { stroke-dashoffset: -30; }
@@ -144,40 +144,57 @@
     }
 
     /* ─── Marker styles ─── */
-    .map-marker-wrapper {
+    .fire-marker-wrapper {
       position: relative;
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 54px;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
+      pointer-events: none;
     }
-    .map-marker-ring {
+    .fire-marker-halo {
       position: absolute;
-      inset: 0;
+      top: 0;
+      left: 0;
+      width: 44px;
+      height: 44px;
+      border: 2px solid var(--accent);
       border-radius: 50%;
-      background: var(--glow, rgba(255,68,68,0.3));
-      animation: ring-expand 1.8s ease-out infinite;
+      opacity: 0.8;
+      animation: fire-halo-pulse 1.8s ease-out infinite;
+      transform-origin: center;
     }
-    .map-marker-body {
+    .fire-marker-circle {
       position: relative;
-      width: 38px;
-      height: 38px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
+      background: radial-gradient(circle at 50% 45%, var(--accent) 0%, var(--accent) 68%, rgba(0,0,0,0) 100%);
+      border: 2px solid var(--accent);
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 2px solid rgba(255,255,255,0.25);
-      backdrop-filter: blur(4px);
+      animation: fire-glow-pulse 1.4s ease-in-out infinite;
       cursor: pointer;
-      transition: transform 0.2s ease;
       z-index: 2;
+      pointer-events: auto;
     }
-    .map-marker-body:hover {
-      transform: scale(1.15);
+    .fire-marker-flame {
+      width: 26px;
+      height: 26px;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35));
     }
-    .neon-pulse-red  .map-marker-ring { animation: neon-pulse-red-anim 1.3s ease-in-out infinite; }
-    .neon-pulse-yellow .map-marker-ring { animation: neon-pulse-yellow-anim 1.5s ease-in-out infinite; }
+    .fire-marker-pin {
+      width: 0;
+      height: 0;
+      margin-top: -1px;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 10px solid var(--accent);
+      filter: drop-shadow(0 0 6px var(--accent));
+    }
 
     /* ─── BFP Marker ─── */
     .bfp-marker {
