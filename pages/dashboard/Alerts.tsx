@@ -2,6 +2,7 @@ import { Flame, Volume2, VolumeX } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AlertCard from '../../components/AlertCard';
+import BfpLogo from '../../components/BfpLogo';
 import { resolveIncident, respondToIncident, subscribeToIncidents, subscribeToTruckLocations, TruckLocation } from '../../services/supabase';
 import { Incident, IncidentStatus } from '../../types';
 import { useAlarm } from '../../hooks/useAlarm';
@@ -77,7 +78,7 @@ const Alerts: React.FC = () => {
             );
 
             // Persist status change in Supabase
-            await respondToIncident(dispatchIncidentId);
+            await respondToIncident(dispatchIncidentId, selectedTruckId);
 
             // Go straight to map focusing the incident and routing from the selected unit
             navigate('/dashboard/map', {
@@ -117,10 +118,13 @@ const Alerts: React.FC = () => {
         <div>
             <div className="flex justify-between items-center mb-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
-                        <Flame className="h-4 w-4 text-[#ff6600]" />
-                        Live Alerts
-                    </h1>
+                    <div className="flex items-center gap-3 mb-2">
+                        <BfpLogo size="lg" showText={false} />
+                        <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+                            <Flame className="h-4 w-4 text-[#ff6600]" />
+                            Live Alerts
+                        </h1>
+                    </div>
                     <p className="text-gray-400 text-sm">
                         Active alerts: <span className="font-bold text-white">{activeIncidents.length}</span>
                         {activeIncidents.length > 0 && (

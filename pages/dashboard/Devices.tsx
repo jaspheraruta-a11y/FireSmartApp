@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Smartphone, PlusCircle, Loader2 } from 'lucide-react';
+import BfpLogo from '../../components/BfpLogo';
 import { registerDeviceWithLocation, supabase } from '../../services/supabase';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
@@ -331,7 +332,10 @@ const Devices: React.FC = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">IoT Device Management</h1>
+                    <div className="flex items-center gap-3">
+                        <BfpLogo size="lg" showText={false} />
+                        <h1 className="text-3xl font-bold text-white">IoT Device Management</h1>
+                    </div>
                     <p className="text-gray-400 text-sm mt-1">
                         Register new sensor nodes and monitor their status in real-time.
                     </p>

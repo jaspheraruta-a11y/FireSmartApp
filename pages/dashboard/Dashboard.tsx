@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { Flame, ShieldAlert, Clock, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import StatCard from '../../components/StatCard';
-import AnalyticsChart from '../../components/AnalyticsChart';
+import BfpLogo from '../../components/BfpLogo';
+import AnalyticsChart, { ANALYTICS_RANGE_LABELS, AnalyticsRange } from '../../components/AnalyticsChart';
 import { subscribeToIncidents } from '../../services/supabase';
 import { Incident, IncidentStatus } from '../../types';
 
 const Dashboard: React.FC = () => {
     const [incidents, setIncidents] = useState<Incident[]>([]);
-    const [analyticsRange, setAnalyticsRange] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
+    const [analyticsRange, setAnalyticsRange] = useState<AnalyticsRange>('daily');
     const navigate = useNavigate();
     
     useEffect(() => {
@@ -25,7 +26,10 @@ const Dashboard: React.FC = () => {
 
     return (
         <div className="space-y-8">
-            <h1 className="text-3xl font-bold text-white">Dashboard Overview</h1>
+            <div className="flex items-center gap-3">
+                <BfpLogo size="lg" showText={false} />
+                <h1 className="text-3xl font-bold text-white">Dashboard Overview</h1>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard 
@@ -62,27 +66,25 @@ const Dashboard: React.FC = () => {
                         <h2 className="text-xl font-semibold text-white">
                             Incident Analytics
                             <span className="text-sm font-normal text-gray-400 ml-2">
-                                ({analyticsRange === 'weekly' ? 'Weekly' : analyticsRange === 'monthly' ? 'Monthly' : 'Yearly'})
+                                ({ANALYTICS_RANGE_LABELS[analyticsRange]})
                             </span>
                         </h2>
                         <div className="inline-flex rounded-lg border border-gray-700 overflow-hidden bg-[#1F1F1F]">
-                            {[
-                                { id: 'weekly', label: 'Weekly' },
-                                { id: 'monthly', label: 'Monthly' },
-                                { id: 'yearly', label: 'Yearly' },
-                            ].map(opt => (
+                            {(
+                                Object.entries(ANALYTICS_RANGE_LABELS) as [AnalyticsRange, string][]
+                            ).map(([id, label]) => (
                                 <button
-                                    key={opt.id}
+                                    key={id}
                                     type="button"
-                                    onClick={() => setAnalyticsRange(opt.id as any)}
+                                    onClick={() => setAnalyticsRange(id)}
                                     className={
                                         'px-3 py-1.5 text-sm font-semibold transition-colors ' +
-                                        (analyticsRange === opt.id
+                                        (analyticsRange === id
                                             ? 'bg-[#E53935] text-white'
                                             : 'text-gray-300 hover:bg-[#2A2A2A]')
                                     }
                                 >
-                                    {opt.label}
+                                    {label}
                                 </button>
                             ))}
                         </div>

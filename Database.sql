@@ -18,6 +18,7 @@ CREATE TABLE public.fire_alerts (
   location_id bigint,
   alert_level text NOT NULL CHECK (alert_level = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])),
   status text DEFAULT 'active'::text,
+  assigned_unit text,
   triggered_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   alert_type text,
   CONSTRAINT fire_alerts_pkey PRIMARY KEY (id),

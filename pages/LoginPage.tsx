@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import BfpLogo from '../components/BfpLogo';
 
 const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('admin@bfp.gov');
@@ -29,9 +30,12 @@ const LoginPage: React.FC = () => {
             </div>
             <div className="relative z-10 w-full max-w-md">
                 <div className="bg-[#1A1A1A]/50 backdrop-blur-sm border border-[#3A3A3A] rounded-2xl shadow-2xl p-8">
-                     <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold text-white tracking-wider">FIRE SMART</h1>
-                        <p className="text-gray-400">BFP Command Center Access</p>
+                     <div className="flex flex-col items-center mb-8">
+                        <div className="flex items-center gap-3">
+                            <BfpLogo size="lg" showText={false} />
+                            <h1 className="text-3xl font-bold text-white">Sign In</h1>
+                        </div>
+                        <p className="mt-3 text-gray-400">BFP Command Center Access</p>
                     </div>
 
                     {error && (

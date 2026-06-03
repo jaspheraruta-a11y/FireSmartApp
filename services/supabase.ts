@@ -174,6 +174,7 @@ type FireAlertRow = {
     alert_level: string;
     alert_type: string | null;
     status: string;
+    assigned_unit: string | null;
     triggered_at: string;
 };
 
@@ -242,7 +243,7 @@ const mapRowToIncident = (
         status,
         alertType,
         sensorData,
-        assignedUnit: undefined,
+        assignedUnit: row.assigned_unit ?? undefined,
         resolvedAt: status === IncidentStatus.RESOLVED ? row.triggered_at : undefined,
     };
 };
@@ -319,7 +320,7 @@ export const subscribeToIncidents = (callback: (incidents: Incident[]) => void) 
             // Fetch fire_alerts only first (no joins) so Alerts page shows data even if RLS blocks locations/devices
             const { data: alertRows, error } = await supabase
                 .from('fire_alerts')
-                .select('id, device_id, location_id, alert_level, alert_type, status, triggered_at')
+                .select('id, device_id, location_id, alert_level, alert_type, status, assigned_unit, triggered_at')
                 .order('triggered_at', { ascending: false });
 
             if (error) {
@@ -391,13 +392,18 @@ export const subscribeToIncidents = (callback: (incidents: Incident[]) => void) 
     };
 };
 
-// Mark an incident as responding in the fire_alerts table
-export const respondToIncident = async (incidentId: string) => {
+// Mark an incident as responding and optionally record the dispatched unit
+export const respondToIncident = async (incidentId: string, assignedUnit?: string) => {
+    const update: { status: string; assigned_unit?: string } = {
+        status: IncidentStatus.RESPONDING,
+    };
+    if (assignedUnit) {
+        update.assigned_unit = assignedUnit;
+    }
+
     const { error } = await supabase
         .from('fire_alerts')
-        .update({
-            status: IncidentStatus.RESPONDING,
-        })
+        .update(update)
         .eq('id', incidentId);
 
     if (error) {
