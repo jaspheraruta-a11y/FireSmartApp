@@ -77,6 +77,13 @@ type RouteResult = {
     fromKey: string;
 };
 
+/** Rounded lat/lng so truck routes refetch when the unit moves, not only on truck id. */
+const ROUTE_ORIGIN_DECIMALS = 4;
+
+function truckRouteFromKey(truckId: string, lat: number, lng: number): string {
+    return `truck:${truckId}:${lat.toFixed(ROUTE_ORIGIN_DECIMALS)}:${lng.toFixed(ROUTE_ORIGIN_DECIMALS)}`;
+}
+
 // ─── OSRM Fetcher ─────────────────────────────────────────────────────────────
 async function fetchOsrmRoute(
     from: [number, number],
@@ -389,7 +396,9 @@ const LiveMapComponent: React.FC<LiveMapComponentProps> = ({
             const origin: [number, number] = originTruck
                 ? [originTruck.latitude, originTruck.longitude]
                 : BFP_OFFICE;
-            const fromKey = originTruck ? `truck:${originTruck.truck_id}` : 'hq';
+            const fromKey = originTruck
+                ? truckRouteFromKey(originTruck.truck_id, originTruck.latitude, originTruck.longitude)
+                : 'hq';
 
             const existing = routeMap.get(id);
             if ((existing && existing.fromKey === fromKey) || fetchingRef.current.has(id)) return;
