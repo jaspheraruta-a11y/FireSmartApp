@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <link rel="icon" type="image/png" href="./BFP-Logo.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fire Smart - IoT Fire Response System</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -625,6 +625,54 @@
       font-size: 9px !important;
     }
     .leaflet-control-attribution a { color: #00d4ff !important; }
+
+    /* ─── Export animations (Reports) ─── */
+    @keyframes export-btn-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.35); }
+      50% { box-shadow: 0 0 0 8px rgba(229, 57, 53, 0); }
+    }
+    @keyframes export-progress {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+    @keyframes success-pop {
+      0% { opacity: 0; transform: scale(0.6) translateY(16px); }
+      65% { transform: scale(1.04) translateY(0); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes success-check-ring {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes success-fade-out {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(-8px); }
+    }
+    .export-btn-loading {
+      animation: export-btn-pulse 1.2s ease-in-out infinite;
+      pointer-events: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .export-btn-loading::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #FDD835, transparent);
+      animation: export-progress 0.9s ease-in-out infinite;
+    }
+    .export-success-toast {
+      animation: success-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .export-success-toast.export-success-toast-exit {
+      animation: success-fade-out 0.35s ease forwards;
+    }
+    .export-success-icon {
+      animation: success-check-ring 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+    }
   </style>
 <script type="importmap">
 {

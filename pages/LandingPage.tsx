@@ -2,16 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, MapPin, Wifi } from 'lucide-react';
-
-const FireSmartLogo: React.FC = () => (
-    <div className="flex items-center space-x-2">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20Z" fill="#E53935"/>
-            <path d="M13.26 6.74L12 5L10.74 6.74C9.13 8.35 8 10.58 8 13C8 16.31 10.69 19 14 19C14.7 19 15.37 18.87 16 18.63C15.12 16.89 14.26 14.88 13.26 6.74Z" fill="#FB8C00"/>
-        </svg>
-        <span className="text-3xl font-bold tracking-wider text-white">FIRE SMART</span>
-    </div>
-);
+import BfpLogo from '../components/BfpLogo';
 
 const LandingPage: React.FC = () => {
     return (
@@ -24,10 +15,13 @@ const LandingPage: React.FC = () => {
             <main className="relative z-10">
                 {/* Hero Section */}
                 <section className="flex flex-col items-center justify-center h-screen text-center px-4">
-                    <FireSmartLogo />
-                    <h1 className="mt-6 text-4xl md:text-6xl font-extrabold text-white tracking-tight">
+                    <div className="flex items-center gap-3 justify-center">
+                        <BfpLogo size="lg" showText={false} />
+                        <h1 className="text-3xl font-bold text-white tracking-wider">FIRE SMART</h1>
+                    </div>
+                    <p className="mt-6 text-4xl md:text-6xl font-extrabold text-white tracking-tight">
                         IoT-Driven Fire Detection for Faster Emergency Response
-                    </h1>
+                    </p>
                     <p className="mt-4 max-w-2xl text-lg text-gray-400">
                         A revolutionary platform connecting smart IoT devices directly to the Bureau of Fire Protection for proactive safety and immediate action.
                     </p>

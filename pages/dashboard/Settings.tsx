@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import BfpLogo from '../../components/BfpLogo';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../services/supabase';
 import { Loader2, Save, KeyRound } from 'lucide-react';
@@ -99,7 +100,10 @@ const Settings: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-white">Settings</h1>
+            <div className="flex items-center gap-3">
+                <BfpLogo size="lg" showText={false} />
+                <h1 className="text-3xl font-bold text-white">Settings</h1>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <section className="bg-[#2A2A2A] rounded-lg border border-gray-700 p-6 space-y-4">

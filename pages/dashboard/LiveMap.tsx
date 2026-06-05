@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import BfpLogo from '../../components/BfpLogo';
 import LiveMapComponent from '../../components/LiveMapComponent';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { subscribeToIncidents, subscribeToTruckLocations, TruckLocation } from '../../services/supabase';
@@ -29,7 +30,10 @@ const LiveMap: React.FC = () => {
 
     return (
         <div className="h-full flex flex-col">
-            <h1 className="text-3xl font-bold text-white mb-4">Live Fire Map</h1>
+            <div className="flex items-center gap-3 mb-4">
+                <BfpLogo size="lg" showText={false} />
+                <h1 className="text-3xl font-bold text-white">Live Fire Map</h1>
+            </div>
             <div className="flex space-x-6 mb-4 text-white">
                 <div className="flex items-center space-x-2"><div className="w-4 h-4 rounded-full bg-red-500 pinpoint-blinker-red"></div><span>Active ({activeIncidents.length})</span></div>
                 <div className="flex items-center space-x-2"><div className="w-4 h-4 rounded-full bg-yellow-500"></div><span>Responding ({respondingIncidents.length})</span></div>
