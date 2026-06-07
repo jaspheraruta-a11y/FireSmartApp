@@ -1,14 +1,14 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Map, Siren, Smartphone, BarChart2, Settings } from 'lucide-react';
+import { LayoutDashboard, Map, Siren, Building2, BarChart2, Settings } from 'lucide-react';
 import BfpLogo from './BfpLogo';
 
 const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard/overview' },
     { name: 'Live Map', icon: Map, path: '/dashboard/map' },
     { name: 'Alerts', icon: Siren, path: '/dashboard/alerts' },
-    { name: 'Devices', icon: Smartphone, path: '/dashboard/devices' },
+    { name: 'Establishments', icon: Building2, path: '/dashboard/establishments' },
     { name: 'Reports', icon: BarChart2, path: '/dashboard/reports' },
     { name: 'Settings', icon: Settings, path: '/dashboard/settings' },
 ];

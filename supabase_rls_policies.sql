@@ -47,6 +47,14 @@ FOR INSERT
 TO public
 WITH CHECK (true);
 
+-- 5c) locations: allow update (so app can edit establishment phone, photo, address)
+CREATE POLICY "Allow update locations"
+ON public.locations
+FOR UPDATE
+TO public
+USING (true)
+WITH CHECK (true);
+
 -- 6) devices: allow read
 CREATE POLICY "Allow read devices"
 ON public.devices

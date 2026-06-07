@@ -30,6 +30,8 @@ CREATE TABLE public.locations (
   owner_id uuid,
   location_name text NOT NULL,
   address text NOT NULL,
+  phone text,
+  photo_url text,
   latitude numeric,
   longitude numeric,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),

@@ -40,9 +40,35 @@ export type RegisterDeviceInput = {
     address: string;
     latitude: number;
     longitude: number;
+    phone?: string | null;
+    photo_url?: string | null;
 };
 
-type DeviceInsertRow = {
+export type RegisterDeviceToExistingInput = {
+    device_uid: string;
+    device_type?: string | null;
+    status?: string | null;
+};
+
+export type EstablishmentWithDevices = {
+    id: number;
+    location_name: string;
+    address: string;
+    phone: string | null;
+    photo_url: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    devices: DeviceInsertRow[];
+};
+
+export type UpdateEstablishmentInput = {
+    location_name?: string;
+    address?: string;
+    phone?: string | null;
+    photo_url?: string | null;
+};
+
+export type DeviceInsertRow = {
     id: number;
     device_uid: string;
     device_type: string | null;
@@ -55,6 +81,8 @@ type LocationInsertRow = {
     id: number;
     location_name: string;
     address: string;
+    phone: string | null;
+    photo_url: string | null;
 };
 
 const isRlsInsertBlocked = (error: any): boolean => {
@@ -79,7 +107,12 @@ export const registerDeviceWithLocation = async (
         address,
         latitude,
         longitude,
+        phone,
+        photo_url,
     } = input;
+
+    const trimmedPhone = phone?.trim() || null;
+    const trimmedPhotoUrl = photo_url?.trim() || null;
 
     // 1) Create location
     const { data: newLocation, error: locationInsertError } = await supabase
@@ -89,8 +122,10 @@ export const registerDeviceWithLocation = async (
             address: address.trim(),
             latitude,
             longitude,
+            phone: trimmedPhone,
+            photo_url: trimmedPhotoUrl,
         })
-        .select('id, location_name, address')
+        .select('id, location_name, address, phone, photo_url')
         .single();
 
     if (locationInsertError || !newLocation) {
@@ -137,6 +172,127 @@ export const registerDeviceWithLocation = async (
         device: newDevice as DeviceInsertRow,
         location: newLocation as LocationInsertRow,
     };
+};
+
+export const registerDeviceToExistingLocation = async (
+    locationId: number,
+    input: RegisterDeviceToExistingInput
+): Promise<DeviceInsertRow> => {
+    const {
+        device_uid,
+        device_type = 'fire_sensor',
+        status = 'active',
+    } = input;
+
+    const { data: newDevice, error: deviceInsertError } = await supabase
+        .from('devices')
+        .insert({
+            device_uid: device_uid.trim(),
+            device_type,
+            status,
+            location_id: locationId,
+        })
+        .select('id, device_uid, device_type, status, last_seen, location_id')
+        .single();
+
+    if (deviceInsertError || !newDevice) {
+        if ((deviceInsertError as any)?.code === '23505') {
+            throw new Error('A device with this UID already exists.');
+        }
+        if (isRlsInsertBlocked(deviceInsertError)) {
+            throw new Error(
+                'Database blocked creating devices (Row Level Security). Apply the INSERT policy in `supabase_rls_policies.sql` (Allow insert devices), then try again.'
+            );
+        }
+        throw new Error(deviceInsertError?.message ?? 'Failed to register device.');
+    }
+
+    return newDevice as DeviceInsertRow;
+};
+
+export const fetchEstablishmentsWithDevices = async (): Promise<EstablishmentWithDevices[]> => {
+    const { data, error } = await supabase
+        .from('locations')
+        .select(`
+            id,
+            location_name,
+            address,
+            phone,
+            photo_url,
+            latitude,
+            longitude,
+            devices (
+                id,
+                device_uid,
+                device_type,
+                status,
+                last_seen,
+                location_id
+            )
+        `)
+        .order('location_name', { ascending: true });
+
+    if (error) {
+        throw new Error(error.message ?? 'Failed to load establishments.');
+    }
+
+    return (data ?? []).map((row: any) => ({
+        id: row.id,
+        location_name: row.location_name,
+        address: row.address,
+        phone: row.phone ?? null,
+        photo_url: row.photo_url ?? null,
+        latitude: row.latitude ?? null,
+        longitude: row.longitude ?? null,
+        devices: (row.devices ?? []) as DeviceInsertRow[],
+    }));
+};
+
+export const fetchUnassignedDevices = async (): Promise<DeviceInsertRow[]> => {
+    const { data, error } = await supabase
+        .from('devices')
+        .select('id, device_uid, device_type, status, last_seen, location_id')
+        .is('location_id', null)
+        .order('id', { ascending: true });
+
+    if (error) {
+        throw new Error(error.message ?? 'Failed to load unassigned devices.');
+    }
+
+    return (data ?? []) as DeviceInsertRow[];
+};
+
+export const updateEstablishment = async (
+    id: number,
+    input: UpdateEstablishmentInput
+): Promise<LocationInsertRow> => {
+    const payload: Record<string, string | null> = {};
+
+    if (input.location_name !== undefined) {
+        payload.location_name = input.location_name.trim();
+    }
+    if (input.address !== undefined) {
+        payload.address = input.address.trim();
+    }
+    if (input.phone !== undefined) {
+        payload.phone = input.phone?.trim() || null;
+    }
+    if (input.photo_url !== undefined) {
+        payload.photo_url = input.photo_url?.trim() || null;
+    }
+
+    const { data, error } = await supabase
+        .from('locations')
+        .update(payload)
+        .eq('id', id)
+        .select('id, location_name, address, phone, photo_url')
+        .single();
+
+    if (error || !data) {
+        throw new Error(error?.message ?? 'Failed to update establishment.');
+    }
+
+    return data as LocationInsertRow;
 };
 
 // Test database connection

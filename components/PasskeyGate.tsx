@@ -128,7 +128,7 @@ const PasskeyGate: React.FC<PasskeyGateProps> = ({ scope, title, children }) => 
     const locked = !unlocked;
 
     const handleClose = () => {
-        navigate('/dashboard/devices');
+        navigate('/dashboard/establishments');
     };
 
     return (

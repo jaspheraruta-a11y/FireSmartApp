@@ -26,9 +26,12 @@ The following tables and relationships are expected:
    - `status` (text)
    - `triggered_at` (timestamp)
 
-2. **locations** - Location information
+2. **locations** - Establishment / location information
    - `id` (bigint, primary key)
+   - `location_name` (text)
    - `address` (text)
+   - `phone` (text, optional establishment contact)
+   - `photo_url` (text, optional establishment image URL)
    - `latitude` (numeric)
    - `longitude` (numeric)
 

@@ -10,7 +10,7 @@ const DashboardLayout = lazy(() => import('./pages/DashboardLayout'));
 const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
 const LiveMap = lazy(() => import('./pages/dashboard/LiveMap'));
 const Alerts = lazy(() => import('./pages/dashboard/Alerts'));
-const Devices = lazy(() => import('./pages/dashboard/Devices'));
+const Establishments = lazy(() => import('./pages/dashboard/Establishments'));
 const Reports = lazy(() => import('./pages/dashboard/Reports'));
 const Settings = lazy(() => import('./pages/dashboard/Settings'));
 
@@ -39,7 +39,8 @@ const App: React.FC = () => {
                             <Route path="overview" element={<Dashboard />} />
                             <Route path="map" element={<LiveMap />} />
                             <Route path="alerts" element={<Alerts />} />
-                            <Route path="devices" element={<Devices />} />
+                            <Route path="establishments" element={<Establishments />} />
+                            <Route path="devices" element={<Navigate to="establishments" replace />} />
                             <Route path="reports" element={<Reports />} />
                             <Route path="settings" element={<Settings />} />
                         </Route>
